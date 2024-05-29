@@ -8,6 +8,7 @@ using System.Data;
 using System.Xml.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using System.Xml.Xsl;
 
 namespace DNNConnect.DNNResxCompare
 {
@@ -21,6 +22,21 @@ namespace DNNConnect.DNNResxCompare
         string basePathOld;
         string basePathNew;
         string saveAs;
+
+        public string saveAsHtml
+        {
+            get
+            {
+                return saveAs.Replace(".xml", ".html");
+            }
+        }
+        public string xsltPath
+        {
+            get
+            {
+                return Path.GetDirectoryName(saveAs) + "\\diff.xsl";
+            }
+        }
 
         public Comparer()
         {
@@ -49,6 +65,7 @@ namespace DNNConnect.DNNResxCompare
             ProcessFolderNew(folderNew);
 
             GenerateReport();
+            GenerateHtml();
         }
 
         private void ProcessFolder(string currentFolder)
@@ -483,6 +500,23 @@ namespace DNNConnect.DNNResxCompare
 
             xWrit.Flush();
             xWrit.Close();
+        }
+
+        private void GenerateHtml()
+        {
+            XslCompiledTransform transform = new XslCompiledTransform();
+            using (XmlReader reader = XmlReader.Create(xsltPath))
+            {
+                transform.Load(reader);
+            }
+
+            StringWriter results = new StringWriter();
+            using (XmlReader reader = XmlReader.Create(saveAs))
+            {
+                transform.Transform(reader, null, results);
+            }
+
+            File.WriteAllText(saveAsHtml, results.ToString());
         }
 
         private int CountWords(string value)
